@@ -1,0 +1,87 @@
+data:
+  phase1:
+    emg:
+      csv_path: "dataset/MyoGym.csv"
+      window_size: 256
+      step_size: 64
+      val_ratio: 0.2
+      batch_size: 128
+    imu:
+      csv_path: "dataset/imu_fatigue.csv"
+      window_size: 256
+      step_size: 64
+      val_ratio: 0.2
+      batch_size: 128
+  phase2:
+    processed_pt_path: "dataset/processed/jtom_integrated_samples.pt"
+    batch_size: 64
+    rpe_bins: [0.0, 5.0, 7.0, 11.0]
+    split:
+      train_persons: []
+      val_persons: []
+      test_persons: []
+      ratios:
+        train: 0.7
+        val: 0.15
+        test: 0.15
+
+model:
+  emg:
+    num_channels: 1
+    embed_dim: 128
+    nhead: 8
+    num_layers: 4
+    dropout: 0.1
+  imu:
+    num_channels: 6
+    embed_dim: 128
+    nhead: 8
+    num_layers: 4
+    dropout: 0.1
+  fusion:
+    embed_dim: 128
+    fusion_heads: 8
+    set_heads: 4
+
+train:
+  device: "cuda"
+  seed: 42
+  num_workers: 0
+  pin_memory: true
+  output_dir: "outputs"
+  phase1:
+    num_epochs: 30
+    imu_num_epochs: 12
+    patience: 8
+    lr: 1.0e-3
+    weight_decay: 1.0e-4
+    warmup_epochs: 2
+    temperature: 0.07
+    mask_ratio: 0.15
+    num_views: 2
+    num_chunks: 4
+    loss_weights:
+      mae: 1.0
+      contrastive: 1.0
+      order: 0.05
+  phase2:
+    num_epochs: 40
+    freeze_epochs: 5
+    patience: 10
+    lr: 5.0e-4
+    encoder_lr_ratio: 0.1
+    weight_decay: 1.0e-4
+    warmup_epochs: 2
+    label_smoothing: 0.05
+    use_class_weight: true
+    class_weight_cap: 3.0
+    gate_balance_weight: 0.03
+    loss_weights:
+      classification: 1.2
+      cross_modal: 0.4
+      emg_intra: 0.1
+      imu_intra: 0.1
+
+paths:
+  phase1_emg_ckpt: "outputs/models/emg_encoder_best.pt"
+  phase1_imu_ckpt: "outputs/models/imu_encoder_best.pt"
