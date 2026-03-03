@@ -14,8 +14,9 @@ data:
       batch_size: 128
   phase2:
     processed_pt_path: "dataset/processed/jtom_integrated_samples.pt"
-    batch_size: 64
-    rpe_bins: [0.0, 5.0, 7.0, 11.0]
+    batch_size: 32  # 样本有限，小 batch 利于稳定梯度
+    rpe_bins: [0.0, 7.0, 11.0]  # 二分类: low(2-6) vs high(7-10)
+    person_balanced_sampling: false  # 训练时按人均衡采样，缓解少数人被淹没
     split:
       train_persons: []
       val_persons: []
@@ -24,6 +25,10 @@ data:
         train: 0.7
         val: 0.15
         test: 0.15
+  phase3:
+    coaching_path: "dataset/coaching.jsonl"
+    analyse_jtom_path: "dataset/analyse_jtom.csv"
+    val_ratio: 0.1
 
 model:
   emg:
@@ -42,6 +47,7 @@ model:
     embed_dim: 128
     fusion_heads: 8
     set_heads: 4
+    dropout: 0.2   # 增强正则化，缓解过拟合
 
 train:
   device: "cuda"
@@ -65,23 +71,48 @@ train:
       contrastive: 1.0
       order: 0.05
   phase2:
-    num_epochs: 40
-    freeze_epochs: 5
-    patience: 10
+    num_epochs: 60
+    freeze_epochs: 8
+    patience: 10   # 提前早停，避免过拟合
     lr: 5.0e-4
     encoder_lr_ratio: 0.1
-    weight_decay: 1.0e-4
+    weight_decay: 3.0e-4   # 加强正则
     warmup_epochs: 2
-    label_smoothing: 0.05
+    label_smoothing: 0.02
     use_class_weight: true
-    class_weight_cap: 3.0
-    gate_balance_weight: 0.03
+    class_weight_cap: 6.0
+    gate_balance_weight: 0.12   # 强制 gate 均衡，避免塌缩到 EMG
     loss_weights:
-      classification: 1.2
-      cross_modal: 0.4
-      emg_intra: 0.1
-      imu_intra: 0.1
+      classification: 1.5   # 主任务优先
+      cross_modal: 0.2
+      emg_intra: 0.05
+      imu_intra: 0.05
 
 paths:
   phase1_emg_ckpt: "outputs/models/emg_encoder_best.pt"
   phase1_imu_ckpt: "outputs/models/imu_encoder_best.pt"
+  phase2_fusion_ckpt: "outputs/models/best_fusion_model.pt"
+  prototypes_init: "dataset/prototypes_init.pt"
+
+phase3:
+  llm_path: "Qwen-7B"  # 或本地路径
+  checkpoint_dir: "outputs/models"
+  batch_size_p3: 4
+  epochs_p3: 5
+  lr_p3: 1.0e-4
+  num_prototypes: 64
+  n_soft_tokens: 4
+  llm_dim: 4096  # Qwen-7B
+  infer:
+    split: "val"
+    output: "outputs/phase3_preds.jsonl"
+    batch_size: 8
+    dedup_by_rep: true
+    generation:
+      max_new_tokens: 56
+      min_new_tokens: 8
+      do_sample: false
+      temperature: 0.7
+      top_p: 0.9
+      repetition_penalty: 1.15
+      no_repeat_ngram_size: 3

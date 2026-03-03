@@ -30,7 +30,7 @@ def build_encoder(config: dict, modality: str):
 
 
 def run_phase1(config: dict, modality: str):
-    from data.create_dataset import create_ssl_dataloaders
+    from dataloaders.create_dataset import create_ssl_dataloaders
     from models.ssl_model import SSLModel
     from training.ssl_trainer import SSLTrainer
 
@@ -64,8 +64,83 @@ def _load_ckpt_if_exists(module: torch.nn.Module, path: str, name: str):
     logger.info(f"Loaded {name} checkpoint: {path}")
 
 
+def run_phase3(config: dict):
+    from dataloaders.create_dataset import get_num_phase2_classes
+    from dataloaders.phase3_dataset import create_phase3_datasets
+    from models.fusion import MultiModalModel
+    from models.fusionllm import Phase3FusionLLM
+    from models.reprogramming import ReprogrammingLayer
+    from training.phase3_trainer import Phase3Trainer
+    from transformers import AutoModelForCausalLM
+
+    paths = config.get("paths", {})
+    p3 = config.get("phase3", {})
+    llm_path = p3.get("llm_path")
+    proto_path = paths.get("prototypes_init", "dataset/prototypes_init.pt")
+    fusion_ckpt = paths.get("phase2_fusion_ckpt") or os.path.join(config["train"]["output_dir"], "models", "best_fusion_model.pt")
+
+    d_model = config["model"]["fusion"]["embed_dim"]
+    num_prototypes = p3.get("num_prototypes", 64)
+    n_soft_tokens = p3.get("n_soft_tokens", 4)
+    llm_dim = p3.get("llm_dim", 4096)
+
+    # 1. Phase2 模型（加载 checkpoint）
+    num_classes = get_num_phase2_classes(config)
+    emg_encoder = build_encoder(config, "emg")
+    imu_encoder = build_encoder(config, "imu")
+    _load_ckpt_if_exists(emg_encoder, paths.get("phase1_emg_ckpt", "outputs/models/emg_encoder_best.pt"), "EMG encoder")
+    _load_ckpt_if_exists(imu_encoder, paths.get("phase1_imu_ckpt", "outputs/models/imu_encoder_best.pt"), "IMU encoder")
+
+    phase2_model = MultiModalModel(
+        emg_encoder=emg_encoder,
+        imu_encoder=imu_encoder,
+        model_cfg=config["model"],
+        num_classes=num_classes,
+    )
+    if os.path.exists(fusion_ckpt):
+        phase2_model.load_state_dict(torch.load(fusion_ckpt, map_location="cpu"), strict=True)
+        logger.info(f"Loaded Phase2 fusion: {fusion_ckpt}")
+    else:
+        raise FileNotFoundError(f"Phase2 checkpoint 不存在: {fusion_ckpt}，请先运行 phase2")
+
+    # 2. 重编程层 + 原型初始化
+    reprogramming_layer = ReprogrammingLayer(
+        d_model=d_model,
+        num_prototypes=num_prototypes,
+        llm_dim=llm_dim,
+        n_soft_tokens=n_soft_tokens,
+    )
+    if os.path.exists(proto_path):
+        proto = torch.load(proto_path, map_location="cpu")
+        reprogramming_layer.init_with_tokens(proto)
+    else:
+        logger.warning(f"prototypes_init 不存在: {proto_path}，将使用随机初始化。可运行 scripts/extract.py 生成。")
+
+    # 3. LLM
+    target_device = str(config.get("train", {}).get("device", "cuda"))
+    llm_dtype = torch.bfloat16 if (target_device.startswith("cuda") and torch.cuda.is_available()) else torch.float32
+    llm = AutoModelForCausalLM.from_pretrained(
+        llm_path,
+        trust_remote_code=True,
+        torch_dtype=llm_dtype,
+    )
+
+    # 4. Phase3 模型
+    model = Phase3FusionLLM(
+        phase2_model=phase2_model,
+        llm_model=llm,
+        reprogramming_layer=reprogramming_layer,
+    )
+
+    # 5. 数据集 + 训练
+    train_ds, val_ds = create_phase3_datasets(config)
+    device = config["train"].get("device", "cuda")
+    trainer = Phase3Trainer(model=model, train_dataset=train_ds, val_dataset=val_ds, config=config, device=device)
+    trainer.train()
+
+
 def run_phase2(config: dict, auto_preprocess: bool):
-    from data.create_dataset import create_phase2_dataloaders, get_num_phase2_classes
+    from dataloaders.create_dataset import create_phase2_dataloaders, get_num_phase2_classes
     from models.fusion import MultiModalModel
     from scripts.preprocess_jtom import preprocess_jtom_integrated
     from training.fusion_trainer import FusionTrainer
@@ -122,6 +197,8 @@ def parse_args():
 
     p2 = sub.add_parser("phase2", help="Run Phase2 fusion training")
     p2.add_argument("--auto_preprocess", action="store_true")
+
+    p3 = sub.add_parser("phase3", help="Run Phase3 语义重编程训练")
     return parser.parse_args()
 
 
@@ -137,7 +214,9 @@ def main():
     if args.stage == "phase1":
         run_phase1(config, args.modality)
     elif args.stage == "phase2":
-        run_phase2(config, auto_preprocess=args.auto_preprocess)
+        run_phase2(config, auto_preprocess=getattr(args, "auto_preprocess", False))
+    elif args.stage == "phase3":
+        run_phase3(config)
     else:
         raise ValueError(f"Unknown stage: {args.stage}")
 
