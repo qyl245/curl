@@ -88,10 +88,12 @@ class MultiModalModel(nn.Module):
         if not self.use_single_channel:
             self.emg_set = SetEncoder(d_model, nhead=fcfg.get("set_heads", 4))
 
+        dropout = fcfg.get("dropout", 0.0)
         self.fusion = CrossModalFusion(d_model, fcfg["fusion_heads"])
         self.modality_gate = nn.Sequential(
             nn.Linear(d_model * 2, d_model),
             nn.GELU(),
+            nn.Dropout(dropout),
             nn.Linear(d_model, 2),
         )
         self.proj_cross = ProjectionHead(d_model, d_model)
@@ -100,6 +102,7 @@ class MultiModalModel(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(d_model, d_model),
             nn.GELU(),
+            nn.Dropout(dropout),
             nn.Linear(d_model, num_classes),
         )
 
