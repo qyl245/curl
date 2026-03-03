@@ -58,12 +58,13 @@ def preprocess_jtom_integrated(csv_path, save_path, target_length=200):
         # 针对该人员的所有信号列进行标准化
         df.loc[person_mask, emg_cols + imu_cols] = scaler.fit_transform(df.loc[person_mask, emg_cols + imu_cols])
         
-    # 2. 细粒度处理：按 class (动作组) 和 rep_num (次数) 进行切割与信号增强
+    # 2. 细粒度处理：按 person + weight + class + rep_num 切割与信号增强
+    # 与 coaching/analyse_jtom 的 signal_id 口径保持一致，避免 phase3 对齐缺失。
     print("正在进行信号增强与重采样...")
     # 使用 groupby 提高效率
-    grouped = df.groupby(['person_id', 'class', 'rep_num'])
+    grouped = df.groupby(['person_id', 'weight', 'class', 'rep_num'])
     
-    for (person_id, class_id, rep_id), group_df in grouped:
+    for (person_id, weight, class_id, rep_id), group_df in grouped:
         # 剔除异常短的片段 (至少需要能做滤波的长度)
         if len(group_df) < 50:
             continue
@@ -95,7 +96,7 @@ def preprocess_jtom_integrated(csv_path, save_path, target_length=200):
             'label': {
                 'rpe': int(group_df['rpe'].iloc[0]),
                 'person_id': person_id,
-                'weight': float(group_df['weight'].iloc[0]),
+                'weight': float(weight),
                 'class': class_id,
                 'rep_num': int(rep_id)
             }
@@ -111,7 +112,7 @@ def preprocess_jtom_integrated(csv_path, save_path, target_length=200):
 
 if __name__ == "__main__":
     # 配置路径
-    INPUT_CSV = 'dataset/J-tom03.csv'
+    INPUT_CSV = 'dataset/j-tom03.csv'
     OUTPUT_PT = 'dataset/processed/jtom_integrated_samples.pt'
     
     preprocess_jtom_integrated(INPUT_CSV, OUTPUT_PT)

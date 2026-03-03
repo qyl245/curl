@@ -1,5 +1,7 @@
-import pandas as pd
+import os
+
 import numpy as np
+import pandas as pd
 from scipy.signal import butter, filtfilt
 
 # --- 1. 参数配置 ---
@@ -137,6 +139,8 @@ if __name__ == "__main__":
     print("映射语义标签...")
     final_coaching_data = generate_coach_tags(rep_metrics)
 
-    # 保存结果
-    final_coaching_data.to_csv('analyse_jtom.csv', index=False)
-    print("分析完成！请查看 analyse_jtom.csv")
+    # 保存结果（与 config.yaml / phase3 期望路径一致）
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    out_path = os.path.join(project_root, 'dataset', 'analyse_jtom.csv')
+    final_coaching_data.to_csv(out_path, index=False)
+    print(f"分析完成！已保存至 {out_path}")
