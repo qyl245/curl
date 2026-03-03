@@ -1,0 +1,26 @@
+{
+  "eval_scope": "matched",
+  "collapse_versions": true,
+  "n_total_gt": 907,
+  "n_pred_matched": 90,
+  "n_missing_pred": 817,
+  "coverage": 0.09922822491730982,
+  "tag_micro_f1": 0.36974789915966383,
+  "tag_macro_f1": 0.25607596962033913,
+  "per_label_f1": {
+    "借力": 0.6190476190476191,
+    "晃动": 0.17073170731707316,
+    "后程困难": 0.4126984126984127,
+    "震颤": 0.21276595744680848,
+    "标准": 0.12121212121212123,
+    "挣扎": 0.0
+  },
+  "rouge_l_f1_mean": 0.10948991102082396,
+  "conflict_rate": 0.0,
+  "n_conflict_eligible": 0,
+  "n_conflict": 0,
+  "pass_suggestion": {
+    "tag_micro_f1_ge_0.60": false,
+    "conflict_rate_le_0.15": true
+  }
+}

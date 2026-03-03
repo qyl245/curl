@@ -1,0 +1,107 @@
+{
+  "target_person": "T456",
+  "overall_status": "red",
+  "n_reps_total": 597,
+  "n_persons": 5,
+  "person_counts": {
+    "A321": 254,
+    "P714": 127,
+    "T417": 110,
+    "T456": 56,
+    "G998": 50
+  },
+  "target_rpe_counts": {
+    "5.0": 15,
+    "6.0": 15,
+    "7.0": 7,
+    "8.0": 7,
+    "9.0": 8,
+    "10.0": 4
+  },
+  "target_rpe_2class_counts": {
+    "low_2_6": 30,
+    "high_7_10": 26
+  },
+  "risk_items": [
+    {
+      "name": "coverage_insufficient",
+      "value": 0.47257383966244726,
+      "threshold": 0.6,
+      "status": "red",
+      "detail": "target_n=56, others_median=118.5"
+    },
+    {
+      "name": "distribution_shift",
+      "value": 0,
+      "threshold": 3,
+      "status": "green",
+      "detail": "|z|>2.0 metrics=0"
+    },
+    {
+      "name": "signal_quality_risk",
+      "value": 0.4366747688756508,
+      "threshold": 2.0,
+      "status": "green",
+      "detail": "quality_z={'nan_ratio': 0.0, 'constant_ratio': 0.4366747688756508, 'spike_ratio': -0.23000753163548962}"
+    },
+    {
+      "name": "boundary_sensitive",
+      "value": 0.39285714285714285,
+      "threshold": 0.5,
+      "status": "green",
+      "detail": "ratio of samples at RPE 6/7"
+    }
+  ],
+  "top_shift_metrics": [
+    {
+      "metric": "jerk_score",
+      "zscore_vs_others": 1.486014452791984,
+      "cohen_d": 1.4164769587745518
+    },
+    {
+      "metric": "gyro_norm_std",
+      "zscore_vs_others": 0.9388043687790338,
+      "cohen_d": 0.9734628435165563
+    },
+    {
+      "metric": "constant_ratio",
+      "zscore_vs_others": 0.7168305165041966,
+      "cohen_d": 0.7160517261823869
+    },
+    {
+      "metric": "acc_norm_mean",
+      "zscore_vs_others": -0.6376316462414439,
+      "cohen_d": -0.6627530860511518
+    },
+    {
+      "metric": "gyro_norm_mean",
+      "zscore_vs_others": 0.5157402660700587,
+      "cohen_d": 0.5188334438150725
+    }
+  ],
+  "pt_consistency": {
+    "available": true,
+    "n_samples": 597,
+    "n_people": 5,
+    "people": [
+      "A321",
+      "G998",
+      "P714",
+      "T417",
+      "T456"
+    ],
+    "rpe_counts": {
+      "2": 11,
+      "3": 27,
+      "4": 32,
+      "5": 85,
+      "6": 154,
+      "7": 121,
+      "8": 88,
+      "9": 61,
+      "10": 18
+    },
+    "expected_samples_from_csv": 597,
+    "sample_count_match": true
+  }
+}
