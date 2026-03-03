@@ -75,7 +75,7 @@ class Phase3Dataset(Dataset):
         # 2. 加载 jtom 样本并建索引
         # full_key: (person_id, weight, class, rep_num) -> idx（推荐口径）
         # loose_key: (person_id, class, rep_num) -> [idx...]（兼容历史 PT 未按 weight 分组）
-        samples = torch.load(jtom_pt_path, map_location="cpu")
+        samples = torch.load(jtom_pt_path, map_location="cpu", weights_only=False)
         self.samples = samples
         jtom_index: Dict[Tuple[str, int, int, int], int] = {}
         jtom_loose_index: Dict[Tuple[str, int, int], List[int]] = {}
