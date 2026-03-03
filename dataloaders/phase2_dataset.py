@@ -87,7 +87,7 @@ def create_phase2_dataloaders(config: dict) -> Tuple[DataLoader, DataLoader, Dat
             f"Phase2 样本文件不存在: {pt_path}. 请先运行 scripts/preprocess_jtom.py"
         )
 
-    samples: List[Dict] = torch.load(pt_path)
+    samples: List[Dict] = torch.load(pt_path, weights_only=False)
     train_people, val_people, test_people = _split_people(samples, config)
 
     train_samples = [s for s in samples if str(s["label"]["person_id"]) in train_people]
