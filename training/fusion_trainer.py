@@ -14,7 +14,7 @@ from sklearn.metrics import confusion_matrix, f1_score, recall_score
 from torch.optim import AdamW
 from tqdm import tqdm
 
-from data.augmentations import augment_emg, augment_imu
+from dataloaders.augmentations import augment_emg, augment_imu
 from utils.losses import info_nce_symmetric
 from utils.logging_utils import setup_logger
 
@@ -56,6 +56,8 @@ class FusionTrainer:
         self.model = model.to(self.device)
         self.train_loader = train_loader
         self.val_loader = val_loader
+        person_balanced = bool(config.get("data", {}).get("phase2", {}).get("person_balanced_sampling", False))
+        logger.info(f"Phase2 trainer init: person_balanced_sampling={person_balanced}")
 
         self.class_weights = self._build_class_weights()
         self.cls_criterion = nn.CrossEntropyLoss(
