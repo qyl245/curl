@@ -55,7 +55,7 @@ python main.py phase1 --modality both   # 或 emg / imu
 # Phase 2（需先有 Phase 1 的 encoder checkpoint）
 python main.py phase2 --auto_preprocess   # 若 jtom_integrated_samples.pt 不存在则自动预处理
 
-# Phase 3（需先有 Phase 1 + Phase 2 checkpoint）
+# Phase 3（需先有 Phase 1 + Phase 2 checkpoint + prototypes_init.pt）
 python main.py phase3
 ```
 
@@ -83,6 +83,7 @@ models/         # 模型定义
 training/       # 训练器
 scripts/        # 预处理、推理、评估脚本
 ```
+
 
 
 
